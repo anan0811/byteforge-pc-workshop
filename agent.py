@@ -98,6 +98,12 @@ def find_catalog(query):
     query = str(query).strip()
     if not query:
         return {"found": False, "reason": "empty_query"}
+    if re.search(r"\bdiagnostics?\b", query, re.IGNORECASE):
+        query = re.sub(r"\bdiagnostics?\b", "diagnosis", query, flags=re.IGNORECASE)
+    if re.search(r"\bRAM\b", query, re.IGNORECASE) and re.search(
+        r"\b(repair|upgrade)\b", query, re.IGNORECASE
+    ):
+        query = "RAM installation"
     with connect() as connection:
         rows = connection.execute(
             """SELECT name, name_zh, category, price, available FROM catalog
@@ -131,7 +137,7 @@ def _exact_catalog_item(name):
         ).fetchone()
 
 
-def calculate_repair_quote(labor_service, device_type, part_name="none"):
+def calculate_repair_quote(labor_service="none", device_type=None, part_name="none"):
     """Compute two repair outcomes using only catalog prices, never model arithmetic.
 
     If repair is approved, the diagnostic fee is credited and the customer pays
@@ -140,15 +146,29 @@ def calculate_repair_quote(labor_service, device_type, part_name="none"):
     """
     if device_type not in {"desktop", "laptop"}:
         return {"found": False, "reason": "device_type_must_be_desktop_or_laptop"}
+    diagnostic_name = "Desktop diagnosis" if device_type == "desktop" else "Laptop diagnosis"
+    diagnostic = _exact_catalog_item(diagnostic_name)
+    if diagnostic is None or not diagnostic["available"]:
+        return {"found": False, "reason": "diagnostic_service_unavailable"}
+    if not labor_service or str(labor_service).lower() == "none":
+        return {
+            "found": True,
+            "currency": "TWD",
+            "device_type": device_type,
+            "labor_service": None,
+            "labor_fee": None,
+            "part": None,
+            "part_price": None,
+            "diagnostic_fee": diagnostic["price"],
+            "if_repair_approved_total": None,
+            "if_repair_declined_total": diagnostic["price"],
+            "note": "Declined repair: only the diagnostic fee is due; no approved-repair quote was requested.",
+        }
     labor = _exact_catalog_item(labor_service)
     if labor is None or labor["category"] != "service":
         return {"found": False, "reason": "labor_service_not_found"}
     if not labor["available"]:
         return {"found": False, "reason": "labor_service_unavailable"}
-    diagnostic_name = "Desktop diagnosis" if device_type == "desktop" else "Laptop diagnosis"
-    diagnostic = _exact_catalog_item(diagnostic_name)
-    if diagnostic is None or not diagnostic["available"]:
-        return {"found": False, "reason": "diagnostic_service_unavailable"}
     part = None
     if part_name and part_name.lower() != "none":
         part = _exact_catalog_item(part_name)
@@ -200,8 +220,10 @@ def tool_specs():
                 "name": "get_shop_info",
                 "description": (
                     "Look up ByteForge policies and store facts: hours, location, contact, "
-                    "appointments, diagnosis, assembly, customer parts, turnaround, payment, "
-                    "warranty, backups, or parking. Use this for factual shop-policy questions."
+                    "appointments, diagnosis policy, assembly, customer parts, turnaround, payment, "
+                    "warranty, backups, or parking. Use this for factual shop-policy questions, "
+                    "not amounts owed after a repair is approved or declined, and not requests "
+                    "for a person's private contact details."
                 ),
                 "parameters": {
                     "type": "object",
@@ -234,14 +256,19 @@ def tool_specs():
                 "name": "calculate_repair_quote",
                 "description": (
                     "Calculate a desktop or laptop repair estimate from exact catalog items. "
-                    "Use whenever the customer asks for a repair total or compares approving "
-                    "versus declining repair. Never calculate prices in the model. "
+                    "Use whenever the customer asks for any amount owed after a repair is "
+                    "approved or declined. For a declined repair, supply device_type and omit "
+                    "labor_service; this returns the diagnostic-only fee. "
+                    "Never calculate prices in the model. "
                     "If a name is unclear, find_catalog first."
                 ),
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "labor_service": {"type": "string"},
+                        "labor_service": {
+                            "type": "string",
+                            "description": "Exact catalog service name for an approved repair; omit for a declined-only diagnostic quote.",
+                        },
                         "device_type": {
                             "type": "string",
                             "enum": ["desktop", "laptop"],
@@ -251,7 +278,7 @@ def tool_specs():
                             "description": "Exact catalog part name, or 'none'.",
                         },
                     },
-                    "required": ["labor_service", "device_type"],
+                    "required": ["device_type"],
                 },
             },
         },
@@ -261,7 +288,8 @@ def tool_specs():
                 "name": "transfer_to_human",
                 "description": (
                     "Use for complaints, a request for a technician, uncertain compatibility, "
-                    "a specific diagnosis, or shop questions that the data cannot answer. "
+                    "a specific diagnosis, a person's private or unlisted direct contact details, "
+                    "or shop questions that the data cannot answer. "
                     "This returns a simulated contact route; it does not send a message."
                 ),
                 "parameters": {
@@ -287,11 +315,15 @@ SCOPE
 - Discuss only this workshop. Politely decline unrelated requests and return to workshop topics.
 
 ROUTING
-- Shop policy and contact questions: get_shop_info.
+- Shop policy and listed public contact questions: get_shop_info.
 - Service, part, price and availability questions: find_catalog.
-- Any repair-total question: calculate_repair_quote. Never do price arithmetic yourself.
+- Any amount owed after approving or declining a repair, including a diagnostic-only fee:
+  calculate_repair_quote. Never take a fee from policy text or do price arithmetic yourself.
+- For a declined repair, call calculate_repair_quote with device_type only; do not search the
+  catalog first. The tool returns the diagnostic-only amount owed.
 - Complaints, unknown shop-specific facts, actual fault diagnosis, uncertain compatibility,
-  or requests for a technician: transfer_to_human.
+  a person's private or unlisted direct contact details, or requests for a technician:
+  transfer_to_human. Do not substitute general shop contact lookup for this handover.
 - For an ambiguous service or part name, search first and ask the customer to clarify.
 
 LANGUAGE AND FORMAT
