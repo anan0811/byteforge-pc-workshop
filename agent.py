@@ -345,12 +345,28 @@ def _client_from_env():
 def _messages_from_history(chat_history):
     if not chat_history or chat_history[-1].get("role") != "user":
         raise ValueError("The last chat message must be a customer question.")
-    history = [
-        {"role": entry["role"], "content": entry["content"]}
-        for entry in chat_history[-12:]
-        if entry.get("role") in {"user", "assistant"}
-        and isinstance(entry.get("content"), str)
-    ]
+    def message_text(content):
+        if isinstance(content, str):
+            return content
+        if isinstance(content, dict):
+            for field in ("text", "value", "content"):
+                text = message_text(content.get(field))
+                if text:
+                    return text
+        if isinstance(content, list):
+            parts = [message_text(item) for item in content]
+            return "\n".join(part for part in parts if part) or None
+        return None
+
+    history = []
+    for entry in chat_history[-12:]:
+        if entry.get("role") not in {"user", "assistant"}:
+            continue
+        content = message_text(entry.get("content"))
+        if content is not None:
+            history.append({"role": entry["role"], "content": content})
+    if not history or history[-1]["role"] != "user":
+        raise ValueError("The customer question must contain text.")
     question = history[-1]["content"]
     language = "Traditional Chinese" if re.search(r"[一-鿿]", question) else "English"
     return (
@@ -424,4 +440,3 @@ def run_agent(chat_history, api_client=None, model_name=None):
         "Sorry, I could not finish safely. Please contact the technician desk.",
         trace,
     )
-
