@@ -3,6 +3,8 @@
 Run: python app.py
 """
 
+import traceback
+
 import gradio as gr
 
 from agent import build_database, run_agent
@@ -41,7 +43,12 @@ def answer_question(history):
         )
         trace = []
     except Exception as error:
-        print(f"Agent call failed: {type(error).__name__}")
+        frames = traceback.extract_tb(error.__traceback__)
+        where = [(frame.name, frame.lineno) for frame in frames[-4:]]
+        roles = [entry.get("role") for entry in history if isinstance(entry, dict)]
+        content_types = [type(entry.get("content")).__name__ for entry in history if isinstance(entry, dict)]
+        content_keys = [list(entry["content"]) if isinstance(entry.get("content"), dict) else [] for entry in history if isinstance(entry, dict)]
+        print(f"Agent call failed: {type(error).__name__}; where={where}; roles={roles}; types={content_types}; keys={content_keys}")
         answer = "The service could not answer right now. Please check the server log."
         trace = []
     return history + [{"role": "assistant", "content": answer}], trace
@@ -96,7 +103,7 @@ with gr.Blocks(title="ByteForge PC Workshop Customer Service") as demo:
                 with gr.Tab("中文"):
                     gr.Examples(SAMPLE_QUESTIONS_ZH, inputs=user_box)
         with gr.Column(scale=2):
-            trace_panel = gr.JSON(label="Tools used: arguments and results", value=[])
+            trace_panel = gr.JSON(label="Tools used: arguments and results", value=[], elem_id="tool-trace")
 
     send_button.click(
         add_user_message, [user_box, chatbot], [user_box, chatbot]
@@ -111,5 +118,8 @@ with gr.Blocks(title="ByteForge PC Workshop Customer Service") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(share=False)
-
+    demo.launch(
+        share=False,
+        css="#tool-trace .value.string { color: #8b2e0d !important; } "
+            "#tool-trace .key { color: #24517a !important; }",
+    )
