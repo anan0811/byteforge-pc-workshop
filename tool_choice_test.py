@@ -44,7 +44,7 @@ def main():
             f"expected={sorted(acceptable)} used={sorted(used)}",
             flush=True,
         )
-        time.sleep(2)
+        time.sleep(6)
     print(f"tool choice = {correct}/{len(TEST_SET)}")
 
 
