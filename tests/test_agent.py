@@ -52,6 +52,16 @@ def test_catalog_accepts_diagnostic_synonym():
     assert any(item["name"] == "Laptop diagnosis" for item in result["items"])
 
 
+def test_gradio_structured_message_content_is_sent_to_model():
+    messages = agent._messages_from_history(
+        [
+            {"role": "assistant", "content": [{"type": "text", "text": "Welcome"}]},
+            {"role": "user", "content": [{"type": "text", "text": "What time are you open?"}]},
+        ]
+    )
+    assert messages[-1] == {"role": "user", "content": "What time are you open?"}
+
+
 def test_quote_refuses_unknown_or_unavailable_items():
     assert not agent.calculate_repair_quote("Unknown repair", "desktop")["found"]
     assert not agent.calculate_repair_quote(
@@ -135,4 +145,3 @@ def test_handover_is_not_claimed_to_be_real():
     result = agent.transfer_to_human("customer complaint")
     assert result["handover_requested"] is True
     assert "simulated" in result["contact"].lower()
-
