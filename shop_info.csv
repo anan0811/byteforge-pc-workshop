@@ -1,0 +1,14 @@
+topic,content
+opening_hours,"Monday to Saturday 10:00-19:00; closed Sunday. This is a fictional course-demo store."
+location,"ByteForge PC Workshop is a fictional course-demo store in Kaohsiung; it has no real walk-in address."
+contact,"For this course demo, contact the simulated technician desk at support@byteforge.example. No real technician receives mail there."
+appointment,"Book a drop-off time with the technician desk before bringing a computer. The agent cannot make a booking."
+diagnostics,"Desktop diagnosis costs NT$500 and laptop diagnosis costs NT$700. If a customer approves a quoted repair, the diagnostic fee is credited toward that repair. If they decline, only the diagnostic fee is due."
+assembly,"Customers may request standard, gaming, or small-form-factor PC assembly. Assembly labor and parts are priced separately; a technician must confirm compatibility before accepting an order."
+bring_parts,"Customers may bring their own components. A technician must inspect condition and compatibility; the agent cannot guarantee that parts will work together."
+turnaround,"A basic diagnosis normally takes 1-2 business days. Repair and assembly time depends on the parts and technician workload; the agent must not promise a completion date."
+payment,"The fictional store accepts cash and credit cards in New Taiwan dollars. No online payment is available in this demo."
+warranty,"Service labor has a 30-day demo warranty. Parts follow their manufacturer's warranty. Physical damage and data loss are not covered."
+data_backup,"Customers should back up data before service. The store cannot guarantee data preservation; ask a technician about a separate data-migration service."
+parking,"Parking information is not available for this fictional store. Ask the technician desk rather than guessing."
+
