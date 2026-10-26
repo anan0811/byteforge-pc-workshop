@@ -39,6 +39,19 @@ def test_quote_uses_database_prices_and_diagnostic_credit():
     assert quote["if_repair_declined_total"] == 500
 
 
+def test_declined_repair_without_labor_uses_diagnostic_price():
+    quote = agent.calculate_repair_quote(device_type="laptop")
+    assert quote["found"]
+    assert quote["if_repair_approved_total"] is None
+    assert quote["if_repair_declined_total"] == 700
+
+
+def test_catalog_accepts_diagnostic_synonym():
+    result = agent.find_catalog("laptop diagnostic")
+    assert result["found"]
+    assert any(item["name"] == "Laptop diagnosis" for item in result["items"])
+
+
 def test_quote_refuses_unknown_or_unavailable_items():
     assert not agent.calculate_repair_quote("Unknown repair", "desktop")["found"]
     assert not agent.calculate_repair_quote(
