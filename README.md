@@ -44,6 +44,13 @@ The SQLite file is rebuilt from the two CSV files whenever the app starts.
 Prices, policies, and contact details are invented for this course demo.
 `support@byteforge.example` is not a real inbox.
 
+## Screenshot
+
+This live Gradio conversation shows the model's answer alongside the
+`get_shop_info` call, arguments, and database result.
+
+![Gradio conversation and visible tool trace](screenshots/chat-and-tool-trace.png)
+
 ## Project Files
 
 ```text
@@ -54,6 +61,7 @@ byteforge-pc-workshop/
 ├── shop_info.csv         # store information topics
 ├── tool_choice_test.py   # 12-question real-model selection test
 ├── tests/test_agent.py   # deterministic code tests
+├── screenshots/          # real chat and tool-trace screenshot
 ├── requirements.txt     # Python dependencies
 ├── .env.example          # settings template; contains no secret
 ├── .gitignore            # excludes .env and the generated database
@@ -90,6 +98,10 @@ byteforge-pc-workshop/
    python tool_choice_test.py
    ```
 
+With the school AI Hub `Furen-large` model, the live 12-question tool-choice
+test scored 12/12 after routing and calculation fixes. Results depend on the
+configured model and endpoint; run the script again to verify your setup.
+
 ## Limitations and Safety
 
 - This is a fictional shop; no real booking, payment, repair, or hand-over occurs.
@@ -97,4 +109,3 @@ byteforge-pc-workshop/
 - No API key belongs in GitHub. The `.env` and generated `*.db` files are ignored.
 - The code tests check database and loop behavior. The separate 12-question
   script is needed to measure a **real model's** tool-choice score.
-
